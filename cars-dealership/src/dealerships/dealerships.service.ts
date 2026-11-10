@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateDealershipDto } from './dto/create-dealership.dto.js';
 import { UpdateDealershipDto } from './dto/update-dealership.dto.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Dealership } from './entities/dealership.entity.js';
-import { Repository } from 'typeorm';
+import { Repository } from 'typeorm/browser/repository/Repository.js';
 import { Car } from '../cars/entities/car.entity.js';
+import { inject } from 'vitest';
+import { BadRequestException } from '@nestjs/common';
 
 @Injectable()
 export class DealershipsService {
@@ -24,7 +26,7 @@ export class DealershipsService {
     return this.dealershipRepository.save(dealership);
   }
 
-  findAll() {
+  findAll() {       
     return this.dealershipRepository.find();
   }
 
@@ -45,7 +47,10 @@ export class DealershipsService {
   }
 
   async update(id: number, updateDealershipDto: UpdateDealershipDto) {
-    await this.findOne(id);
+    const dealership = await this.dealershipRepository.findOne({ where: { id } });
+    if (!dealership) {
+      throw new NotFoundException(`No se encontró un concesionario con el ID ${id}`);
+    }
     return this.dealershipRepository.update(id, updateDealershipDto);
   }
 
@@ -57,6 +62,6 @@ export class DealershipsService {
     if (dealership.cars && dealership.cars.length > 0) {
       throw new BadRequestException(`No se puede eliminar el concesionario con ID ${id} porque tiene autos asociados.`);
     }
-    return this.dealershipRepository.remove(dealership);
+    
   }
 }
