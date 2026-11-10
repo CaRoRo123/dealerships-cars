@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCarDto } from '../../cars/dto/create-car.dto.js';
-import { UpdateCarDto } from '../../cars/dto/update-car.dto.js';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { CreateCarDto } from './dto/create-car.dto.js';
+import { UpdateCarDto } from './dto/update-car.dto.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Car } from '../../cars/entities/car.entity.js';
-import { Dealership } from './dealership.entity.js';
+import { Car } from './entities/car.entity.js';
+import { Dealership } from '../dealerships/entities/dealership.entity.js';
 import { ConflictException } from '@nestjs/common';
 import { NotFoundException } from '@nestjs/common';
 
@@ -18,32 +18,50 @@ export class CarsService {
   ) {}
 
 
-  create(createCarDto: CreateCarDto) {
-    const duplicado = this.carRepository.findOne({ where: { plate: createCarDto.plate } });
+  async create(createCarDto: CreateCarDto) {
+    const duplicado = await this.carRepository.findOne({ where: { plate: createCarDto.plate } });
     if (duplicado) {
       throw new ConflictException('Ya existe un coche con esa matrícula');
     }
+    const dealership = await this.dealershipRepository.findOne({ where: { id: createCarDto.dealershipId } });
+    if (!dealership) {
+      throw new NotFoundException(`No se encontró un concesionario con el ID ${createCarDto.dealershipId}`);
+    }
+    if (!dealership.active) {
+      throw new BadRequestException(`El concesionario con el ID ${createCarDto.dealershipId} no está activo`);
+    }
+
     const car = this.carRepository.create(createCarDto);
     return this.carRepository.save(car);
   }
 
-  findAll() {
+  async findAll() {
     return this.carRepository.find();
   }
 
-  findOne(id: number) {
-    const car = this.carRepository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const car = await this.carRepository.findOne({ where: { id } });
     if (!car) {
       throw new NotFoundException(`No se encontró un coche con el ID ${id}`);
     }
     return car;
   }
 
-  update(id: number, updateCarDto: UpdateCarDto) {
-    return `This action updates a #${id} car`;
+  async update(id: number, updateCarDto: UpdateCarDto) {
+    const car = await this.findOne(id);
+    if (!car) {
+      throw new NotFoundException(`No se encontró un coche con el ID ${id}`);
+    }
+    const status = updateCarDto.status?.toLowerCase();
+    if (status === 'sold') {
+      throw new BadRequestException(`No se puede cambiar el estado a 'sold' directamente. Debe ser reservado primero.`);
+    }
+    Object.assign(car, updateCarDto);
+    return this.carRepository.save(car);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} car`;
+  async remove(id: number) {
+    const car = await this.findOne(id);
+    return this.carRepository.remove(car);
   }
 }

@@ -1,5 +1,4 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import {Body, Controller, Delete, Get, Param, Patch, Post} from '@nestjs/common';
 import { DealershipsService } from './dealerships.service.js';
 import { CreateDealershipDto } from './dto/create-dealership.dto.js';
 import { UpdateDealershipDto } from './dto/update-dealership.dto.js';
@@ -21,6 +20,11 @@ export class DealershipsController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.dealershipsService.findOne(+id);
+  }
+  
+  @Get(':id/cars')
+  findCars(@Param('id') id: string) {
+    return this.dealershipsService.findCars(+id);
   }
 
   @Patch(':id')

@@ -23,6 +23,9 @@ export class Dealership {
     @Column()
     active: boolean;
 
+    @OneToMany(() => Car, (car) => car.dealership)
+    cars: Car[];
+
     @CreateDateColumn()
     createdAt: Date;
 
